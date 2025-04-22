@@ -107,7 +107,7 @@ def process_student(student, week_time_data, grammar_needs_map):
 # Função para gerar a planilha
 def gerar_planilha():
     alunos = get_students()
-    week_time_data = get_week_study_progress()
+    #week_time_data = get_week_study_progress()
     grammar_needs_map = get_grammar_needs()
     dados = []
 
