@@ -1,4 +1,3 @@
-import streamlit as st
+HEADERS = {"x-api-key": st.secrets["API_KEY"]}
 
-# Teste se a chave foi lida corretamente
-st.write(f"Sua API_KEY é: {st.secrets.get('API_KEY', 'Chave não encontrada')}")
+response = requests.get(f"{BASE_URL}/students", headers=HEADERS)
