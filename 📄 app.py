@@ -4,7 +4,7 @@ import requests
 import pandas as pd
 
 API_KEY = st.secrets["API_KEY"]
-BASE_URL = "https://partner-api.flexge.com"
+BASE_URL = "https://partner-api.flexge.com/external"
 HEADERS = {"x-api-key": API_KEY}
 
 def get(endpoint):
