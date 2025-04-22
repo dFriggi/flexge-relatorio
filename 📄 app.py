@@ -81,8 +81,11 @@ def process_student(student, week_time_data, grammar_needs_map):
     total_grammars = len(grammars)
     total_grammar_errors = sum(g.get("errorCount", 0) for g in grammars)
 
-    # Dados semanais
+    # Dados semanais - Verificação para 'currentWeekTime'
     week_time = week_time_data.get(student_id, 0)
+    if not isinstance(week_time, (int, float)):  # Se week_time não for válido, define como 0
+        week_time = 0
+
     grammar_extra = grammar_needs_map.get(student_id, {})
 
     return {
@@ -99,6 +102,7 @@ def process_student(student, week_time_data, grammar_needs_map):
         "Gramática: erros críticos": grammar_extra.get("grammar_issues", 0),
         "Gramática: % de erro (crítica)": grammar_extra.get("grammar_error_pct", 0),
     }
+
 
 # Função para gerar a planilha
 def gerar_planilha():
