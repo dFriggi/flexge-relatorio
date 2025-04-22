@@ -12,7 +12,7 @@ HEADERS = {"x-api-key": API_KEY}
 def testar_api():
     try:
         # Tente acessar o endpoint de "students" para verificar se a API responde
-        params = {"page": 1, "limit": 100}
+        params = {"page": 1}
         response = requests.get(f"{BASE_URL}/students", headers=HEADERS)
         
         # Verifique o status da resposta
