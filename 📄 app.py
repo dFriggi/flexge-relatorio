@@ -101,7 +101,7 @@ def process_students(students, start_date, end_date):
 
         records.append({
             "Nome": name,
-            "Semana {semana_periodo}": "",
+            f"Semana {semana_periodo}": "",
             "Progresso (%)": progress,
             "Nível": course_name,
             "Tempo de Estudo": studied_time_formatted,
