@@ -82,11 +82,14 @@ def formatar_percentual(numero):
         
 #Formata a hora e minuto do tempo
 def formatar_hora(numero):
+    if ":" not in str(numero):
+        return "Formato inválido"
+
     horas, minutos = str(numero).split(":")
     
     horas = int(float(horas))  # Converte e remove o decimal se houver
     minutos = int(float(minutos))  # Converte e remove o decimal se houver
-
+    
     return f"{horas}:{minutos}"
 
 # Função para processar os dados
