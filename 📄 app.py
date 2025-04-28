@@ -91,13 +91,13 @@ def process_students(students, start_date, end_date):
         semana_periodo = f"{start_date.day:02}.{start_date.month:02} - {end_date.day:02}.{end_date.month:02}"
 
         records.append({
-            "Nome": name,
+            "Nome do Aluno": name,
             "Semana DIA.MES - DIA.MES": semana_periodo,
             "Progresso (%)": progress,
-            "Nível": course_name,
+            "Nome do Curso": course_name,
             "Tempo de Estudo": studied_time_formatted,
-            "Objetivo de Tempo": weekly_hours_formatted,
-            "Qualidade de Estudo": study_score,
+            "Objetivo de Tempo (hh:mm)": weekly_hours_formatted,
+            "Score de Qualidade de Estudo": study_score,
             "Tarefa": "",  # Em branco
             "Relatório da Semana": ""  # Em branco
         })
@@ -131,5 +131,5 @@ def main():
             else:
                 st.warning("Nenhum aluno encontrado.")
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()
