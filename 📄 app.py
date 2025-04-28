@@ -79,7 +79,16 @@ def formatar_percentual(numero):
         return f"{numero:.1f}%".replace('.', ',')
     except ValueError:
         return 'Valor inválido'
+        
+#Formata a hora e minuto do tempo
+def formatar_hora(numero):
+    horas, minutos = str(numero).split(":")
     
+    horas = int(float(horas))  # Converte e remove o decimal se houver
+    minutos = int(float(minutos))  # Converte e remove o decimal se houver
+
+    return f"{horas}:{minutos}"
+
 # Função para processar os dados
 def process_students(students, start_date, end_date):
     records = []
@@ -102,6 +111,8 @@ def process_students(students, start_date, end_date):
         studied_time_formatted = format_seconds_to_hhmm(studied_seconds)
         weekly_hours_seconds = weekly_hours_required * 3600
         weekly_hours_formatted = format_seconds_to_hhmm(weekly_hours_seconds)
+        weekly_hours_formatted = formatar_hora(weekly_hours_formatted)
+        study_score = formatar_hora(study_score)
 
         # Formatar semana para o título
         semana_periodo = f"{start_date.day:02}.{start_date.month:02} - {end_date.day:02}.{end_date.month:02}"
