@@ -3,6 +3,8 @@ import requests
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, timedelta
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 # Configurações da API
 API_KEY = st.secrets["API_KEY"]
@@ -12,7 +14,7 @@ HEADERS = {"x-api-key": API_KEY}
 # Função para converter segundos em HH:MM
 def format_seconds_to_hhmm(seconds):
     minutes = seconds // 60
-    return f"{minutes // 60:02}:{minutes % 60:02}"
+    return f"{minutes // 60}:{minutes % 60}"
 
 # Função para calcular o período da última semana completa (segunda a sexta)
 def get_last_full_week():
@@ -66,7 +68,11 @@ def get_student_study_time(student_id, start_date, end_date):
 
     total_studied_time = sum(day.get("studiedTime", 0) for day in daily_executions)
     return total_studied_time
-
+    
+#Transforma o progresso em percentual
+def formatar_percentual(numero):
+    return f"{numero:.1f}%".replace('.', ',')
+    
 # Função para processar os dados
 def process_students(students, start_date, end_date):
     records = []
@@ -82,6 +88,9 @@ def process_students(students, start_date, end_date):
         # Buscar tempo de estudo da semana
         studied_seconds = get_student_study_time(student_id, start_date, end_date)
 
+        #Transforme em percentual
+        progress = formatar_percentual(progress)
+        
         # Formatar tempos
         studied_time_formatted = format_seconds_to_hhmm(studied_seconds)
         weekly_hours_seconds = weekly_hours_required * 3600
@@ -91,13 +100,13 @@ def process_students(students, start_date, end_date):
         semana_periodo = f"{start_date.day:02}.{start_date.month:02} - {end_date.day:02}.{end_date.month:02}"
 
         records.append({
-            "Nome do Aluno": name,
-            "Semana DIA.MES - DIA.MES": semana_periodo,
+            "Nome": name,
+            "Semana {semana_periodo}": "",
             "Progresso (%)": progress,
-            "Nome do Curso": course_name,
+            "Nível": course_name,
             "Tempo de Estudo": studied_time_formatted,
-            "Objetivo de Tempo (hh:mm)": weekly_hours_formatted,
-            "Score de Qualidade de Estudo": study_score,
+            "Objetivo de Tempo": weekly_hours_formatted,
+            "Qualidade de Estudo": study_score,
             "Tarefa": "",  # Em branco
             "Relatório da Semana": ""  # Em branco
         })
@@ -125,7 +134,7 @@ def main():
                 st.download_button(
                     label="📥 Baixar Relatório Excel",
                     data=output,
-                    file_name="alunos.xlsx",
+                    file_name="Relatório Alunos.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
             else:
