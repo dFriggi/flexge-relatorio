@@ -115,7 +115,7 @@ def process_students(students, start_date, end_date):
         weekly_hours_seconds = weekly_hours_required * 3600
         weekly_hours_formatted = format_seconds_to_hhmm(weekly_hours_seconds)
         weekly_hours_formatted = formatar_hora(weekly_hours_formatted)
-        study_score = formatar_hora(study_score)
+        studied_time_formatted = formatar_hora(studied_time_formatted)
 
         # Formatar semana para o título
         semana_periodo = f"{start_date.day:02}.{start_date.month:02} - {end_date.day:02}.{end_date.month:02}"
