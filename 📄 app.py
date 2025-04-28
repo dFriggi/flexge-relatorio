@@ -1,109 +1,135 @@
 import streamlit as st
-import pandas as pd
 import requests
+import pandas as pd
+from io import BytesIO
 from datetime import datetime, timedelta
-import io
-from openpyxl import Workbook
-from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.styles import Alignment
 
-# CONFIGURAÇÕES DA API
+# Configurações da API
 API_KEY = st.secrets["API_KEY"]
 BASE_URL = "https://partner-api.flexge.com/external"
 HEADERS = {"x-api-key": API_KEY}
 
-# FUNÇÕES AUXILIARES
-def buscar_alunos():
-    url = f"{BASE_URL}/students"
-    params = {"deleted": False}
-    response = requests.get(url, headers=HEADERS, params=params)
-    response.raise_for_status()
-    return response.json()["docs"]
+# Função para converter segundos em HH:MM
+def format_seconds_to_hhmm(seconds):
+    minutes = seconds // 60
+    return f"{minutes // 60:02}:{minutes % 60:02}"
 
-def buscar_tempo_estudo(student_id, start_date, end_date):
-    url = f"{BASE_URL}/students/{student_id}/daily-executions"
-    params = {"from": start_date.isoformat(), "to": end_date.isoformat()}
-    response = requests.get(url, headers=HEADERS, params=params)
-    response.raise_for_status()
-    daily_data = response.json()
-    total_seconds = sum(day["studiedTime"] for day in daily_data)
-    return total_seconds
+# Função para calcular o período da última semana completa (segunda a sexta)
+def get_last_full_week():
+    today = datetime.today()
+    weekday = today.weekday()
 
-def formatar_tempo(total_seconds):
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    return f"{int(hours):02}:{int(minutes):02}"
+    last_friday = today - timedelta(days=weekday + 3)
+    last_monday = last_friday - timedelta(days=4)
 
-def formatar_progresso(progress):
-    return f"{progress:.2f}%"
+    return last_monday.date(), last_friday.date()
 
-def obter_periodo_semana():
-    hoje = datetime.now()
-    ultima_sexta = hoje - timedelta(days=(hoje.weekday() + 3) % 7 + 2)
-    ultima_segunda = ultima_sexta - timedelta(days=4)
-    return ultima_segunda.date(), ultima_sexta.date()
+# Função para buscar os alunos
+def get_students():
+    all_students = []
+    page = 1
 
-# STREAMLIT APP
-st.title("Relatório Flexge - Exportação de Alunos")
+    while True:
+        params = {
+            "page": page,
+            "deleted": False
+        }
+        response = requests.get(f"{BASE_URL}/students", headers=HEADERS, params=params)
 
-if st.button("Gerar Relatório"):
-    alunos = buscar_alunos()
-    segunda, sexta = obter_periodo_semana()
-    semana_str = f"Semana {segunda.strftime('%d.%m')} - {sexta.strftime('%d.%m')}"
+        if response.status_code != 200:
+            st.error(f"Erro na requisição: {response.status_code}")
+            break
 
-    dados = []
-    for aluno in alunos:
-        student_id = aluno["id"]
-        nome = aluno["name"]
-        progresso = aluno.get("studentCourse", {}).get("progress", 0)
-        nome_curso = aluno.get("studentCourse", {}).get("course", {}).get("name", "")
-        objetivo_tempo = aluno.get("weeklyHoursRequired", 0)
-        qualidade_estudo = aluno.get("studyQuality", {}).get("score", 0)
+        data = response.json()
+        students = data.get("docs", [])
 
-        tempo_estudo_segundos = buscar_tempo_estudo(student_id, segunda, sexta)
-        tempo_estudo = formatar_tempo(tempo_estudo_segundos)
+        if not students:
+            break
 
-        objetivo_tempo_minutos = int(objetivo_tempo * 60)
-        objetivo_tempo_formatado = formatar_tempo(objetivo_tempo_minutos * 60)
+        all_students.extend(students)
+        page += 1
 
-        dados.append({
-            "Nome": nome,
-            semana_str: "",
-            "Progresso (%)": formatar_progresso(progresso),
-            "Nível": nome_curso,
-            "Tempo de Estudo": tempo_estudo,
-            "Objetivo de Tempo": objetivo_tempo_formatado,
-            "Score de Qualidade de Estudo": qualidade_estudo,
-            "Tarefa": "",
-            "Relatório da Semana":""
+    return all_students
+
+# Função para buscar o tempo de estudo do aluno
+def get_student_study_time(student_id, start_date, end_date):
+    params = {
+        "from": start_date.isoformat(),
+        "to": end_date.isoformat()
+    }
+    response = requests.get(f"{BASE_URL}/students/{student_id}/daily-executions", headers=HEADERS, params=params)
+
+    if response.status_code != 200:
+        return 0  # Se erro, retorna zero minutos
+
+    daily_executions = response.json()
+
+    total_studied_time = sum(day.get("studiedTime", 0) for day in daily_executions)
+    return total_studied_time
+
+# Função para processar os dados
+def process_students(students, start_date, end_date):
+    records = []
+
+    for student in students:
+        student_id = student.get("id", "")
+        name = student.get("name", "")
+        progress = student.get("studentCourse", {}).get("progress", "")
+        course_name = student.get("studentCourse", {}).get("course", {}).get("name", "")
+        weekly_hours_required = student.get("weeklyHoursRequired", 0)
+        study_score = student.get("studyQuality", {}).get("score", 0)
+
+        # Buscar tempo de estudo da semana
+        studied_seconds = get_student_study_time(student_id, start_date, end_date)
+
+        # Formatar tempos
+        studied_time_formatted = format_seconds_to_hhmm(studied_seconds)
+        weekly_hours_seconds = weekly_hours_required * 3600
+        weekly_hours_formatted = format_seconds_to_hhmm(weekly_hours_seconds)
+
+        # Formatar semana para o título
+        semana_periodo = f"{start_date.day:02}.{start_date.month:02} - {end_date.day:02}.{end_date.month:02}"
+
+        records.append({
+            "Nome": name,
+            "Semana DIA.MES - DIA.MES": semana_periodo,
+            "Progresso (%)": progress,
+            "Nível": course_name,
+            "Tempo de Estudo": studied_time_formatted,
+            "Objetivo de Tempo": weekly_hours_formatted,
+            "Qualidade de Estudo": study_score,
+            "Tarefa": "",  # Em branco
+            "Relatório da Semana": ""  # Em branco
         })
 
-    df = pd.DataFrame(dados)
-    df = df.sort_values(by=["Nome do Aluno"]).reset_index(drop=True)
+    return records
 
-    # Criar arquivo Excel
-    output = io.BytesIO()
-    wb = Workbook()
-    ws = wb.active
+# Função principal
+def main():
+    st.title("📊 Gerar Relatório de Alunos - Flexge API")
 
-    # Adicionar cabeçalho e dados
-    for r in dataframe_to_rows(df, index=False, header=True):
-        ws.append(r)
+    if st.button("Gerar Relatório"):
+        with st.spinner("Buscando dados..."):
+            students = get_students()
+            if students:
+                start_date, end_date = get_last_full_week()
+                student_records = process_students(students, start_date, end_date)
+                df = pd.DataFrame(student_records)
 
-    # Ajustar largura das colunas e alinhamento
-    for column_cells in ws.columns:
-        length = max(len(str(cell.value)) if cell.value else 0 for cell in column_cells)
-        adjusted_width = (length + 2)
-        ws.column_dimensions[column_cells[0].column_letter].width = adjusted_width
-        for cell in column_cells:
-            cell.alignment = Alignment(horizontal='center', vertical='center')
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False)
+                output.seek(0)
 
-    wb.save(output)
-    output.seek(0)
+                st.success("✅ Relatório gerado com sucesso!")
+                st.download_button(
+                    label="📥 Baixar Relatório Excel",
+                    data=output,
+                    file_name="alunos.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.warning("Nenhum aluno encontrado.")
 
-    st.download_button(
-        label="Baixar Relatório em Excel",
-        data=output,
-        file_name="relatorio_flexge.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+if _name_ == "_main_":
+    main()
