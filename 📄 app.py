@@ -71,8 +71,14 @@ def get_student_study_time(student_id, start_date, end_date):
     
 #Transforma o progresso em percentual
 def formatar_percentual(numero):
-    numero = float(numero)  # Converte para float, se necessário
-    return f"{numero:.1f}%".replace('.', ',')
+    if numero == '':  
+        return '0,0%'  
+    
+    try:
+        numero = float(numero)  # Tenta converter para float
+        return f"{numero:.1f}%".replace('.', ',')
+    except ValueError:
+        return 'Valor inválido'
     
 # Função para processar os dados
 def process_students(students, start_date, end_date):
